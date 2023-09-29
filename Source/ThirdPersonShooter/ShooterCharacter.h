@@ -22,6 +22,18 @@ protected:
 	void MoveForward(float Valeu);
 	void MoveRight(float Valeu);
 
+	/**
+	* Called via input to turn at as given rate
+	* @paran Rate This is the normalized rate, i. e. 1.0 means 100% of the disered turn rate
+	*/
+	void TurnAtRate(float Rate);
+
+	/**
+	* Called via input to up/down at as given rate
+	* @paran Rate This is the normalized rate, i. e. 1.0 means 100% of the disered turn rate
+	*/
+	void LookUpAtRate(float Rate);
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -37,6 +49,15 @@ private:
 	//Camera that follows the character
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
+	//Base turn rate in deg/sec. Other scale may affect final turn rate
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float BaseTurnRate;
+
+	//Base look up rate in deg/sec. Other scale may affect final turn rate
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float BaseLookUpRate;
+	
 
 public:
 
