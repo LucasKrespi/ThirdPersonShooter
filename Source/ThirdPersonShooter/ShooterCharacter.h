@@ -39,6 +39,8 @@ protected:
 	*/
 	void FireWeapon();
 
+	bool GetBeanEndLocation(const FVector& MuzzleScketLocation, FVector& OutBeanLocation);
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -74,6 +76,10 @@ private:
 	//Particle Spawned on bullet collision
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	UParticleSystem* ImpactParticles;
+
+	//Smoke trail for bullets
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UParticleSystem* BeanParticles;
 
 	//Montage for firing the weapon
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))

@@ -9,6 +9,7 @@
 #include "Sound/SoundCue.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "DrawDebugHelpers.h"
+#include "Particles/ParticleSystemComponent.h"
 
 
 
@@ -25,6 +26,7 @@ AShooterCharacter::AShooterCharacter() :
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 300.0f; //Camera follows at this distance behinde the character
 	CameraBoom->bUsePawnControlRotation = true; //Rotate the arm based ibn the controller input
+	CameraBoom->SocketOffset = FVector(0.0f, 50.0f, 50.f);
 
 	//Create a follow  camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
@@ -33,11 +35,11 @@ AShooterCharacter::AShooterCharacter() :
 
 	//Stop character rotate with controller
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = true;
 	bUseControllerRotationRoll = false;
 
 	//Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true;//Character moves in the direction of input
+	GetCharacterMovement()->bOrientRotationToMovement = false;//Character moves in the direction of input
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);// at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 600.0f;
 	GetCharacterMovement()->AirControl = 0.2f;
@@ -103,22 +105,21 @@ void AShooterCharacter::FireWeapon()
 			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFlash, SocketTransform);
 		}
 
-		FHitResult FireHit;
-		const FVector Start{ SocketTransform.GetLocation() };
-		const FQuat Rotation{ SocketTransform.GetRotation() };
-		const FVector RotationAxis{ Rotation.GetAxisX() };
-		const FVector End{ Start + RotationAxis * 50'000.0f };
+		FVector BeanEndPoint;
 
-		GetWorld()->LineTraceSingleByChannel(FireHit, Start, End, ECollisionChannel::ECC_Visibility);
-
-		if (FireHit.bBlockingHit)
+		if (GetBeanEndLocation(SocketTransform.GetLocation(), BeanEndPoint))
 		{
-			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 2.0f);
-			DrawDebugPoint(GetWorld(), FireHit.Location, 5.0f, FColor::Red, false, 2.0f);
-
 			if (ImpactParticles)
 			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, FireHit.Location);
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, BeanEndPoint);
+			}
+
+			if (BeanParticles)
+			{
+				UParticleSystemComponent* Bean = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeanParticles, SocketTransform);
+
+				if (Bean)
+					Bean->SetVectorParameter(FName("Target"), BeanEndPoint);
 			}
 		}
 	}
@@ -129,6 +130,56 @@ void AShooterCharacter::FireWeapon()
 		AnimInstance->Montage_Play(HipFireMontage);
 		AnimInstance->Montage_JumpToSection(FName("StartFire"));
 	}
+}
+
+bool AShooterCharacter::GetBeanEndLocation(const FVector& MuzzleScketLocation, FVector& OutBeanLocation)
+{
+	FVector2D ViewportSize;
+
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewportSize);
+	}
+
+	FVector2D CrossHairLocation(ViewportSize.X / 2.0f, ViewportSize.Y / 2.0f);
+	CrossHairLocation.Y -= 50.f; // This Ugly god
+
+	FVector CrossHairWorldPosition;
+	FVector CrossHairWorldDirection;
+
+	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(UGameplayStatics::GetPlayerController(this, 0), CrossHairLocation, CrossHairWorldPosition, CrossHairWorldDirection);
+
+	if (bScreenToWorld)
+	{
+		//Perform hit from CrossHair
+		FHitResult ScreenTraceHit;
+		const FVector Start{ CrossHairWorldPosition };
+		const FVector End{ CrossHairWorldPosition + CrossHairWorldDirection * 50'000.0f };
+
+		OutBeanLocation = End;
+		GetWorld()->LineTraceSingleByChannel(ScreenTraceHit, Start, End, ECollisionChannel::ECC_Visibility);
+
+		if (ScreenTraceHit.bBlockingHit)
+		{
+			OutBeanLocation = ScreenTraceHit.Location;
+		}
+
+		//Perform trace hit from the gun barrel
+		FHitResult WeaponTraceHit;
+		const FVector WeaponTraceStart{ MuzzleScketLocation };
+		const FVector WeaponTraceEnd{ OutBeanLocation };
+
+		GetWorld()->LineTraceSingleByChannel(WeaponTraceHit, WeaponTraceStart, WeaponTraceEnd, ECollisionChannel::ECC_Visibility);
+
+		if (WeaponTraceHit.bBlockingHit)
+		{
+			OutBeanLocation = ScreenTraceHit.Location;
+		}
+
+		
+		return true;
+	}
+	return false;
 }
 
 // Called every frame
