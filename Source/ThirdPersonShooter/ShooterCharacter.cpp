@@ -26,8 +26,8 @@ AShooterCharacter::AShooterCharacter() :
 	//Turn hates for when aiming
 	AimingTurnRate(20.0f),
 	AimingLookUpRate(20.0f),
-	MouseAimingTurnRate(0.2f),
-	MouseAimingLookUpRate(0.2f),
+	MouseAimingTurnRate(0.3f),
+	MouseAimingLookUpRate(0.3f),
 	//True when aiming the weapon
 	IsAiming(false),
 	//Camera FOV values
@@ -43,7 +43,11 @@ AShooterCharacter::AShooterCharacter() :
 	CrossHairShootingFactor(0.0f),
 	//Bullet fire timer variables
 	ShootTimeDuration(0.05f),
-	isFiringBullet(false)
+	isFiringBullet(false),
+	//AutomaticFireGunRate
+	AutomaticGunFireRate(0.1f),
+	ShouldFire(true),
+	IsFireButtonPressed(false)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -149,11 +153,11 @@ void AShooterCharacter::CalculateCrossHairSpread(float DeltaTime)
 	
 	//Calculate aiming factor
 
-	if (IsAiming)
+	if (IsAiming && CrossHairInAirFactor < 1.0f )
 	{
 		CrossHairAimFactor = FMath::FInterpTo(CrossHairInAirFactor, 1.0f, DeltaTime, 30.0f);
 	}
-	else
+	else if (CrossHairInAirFactor >= 0.0f)
 	{
 		CrossHairAimFactor = FMath::FInterpTo(CrossHairInAirFactor, 0.0f, DeltaTime, 30.0f);
 	}
@@ -168,7 +172,7 @@ void AShooterCharacter::CalculateCrossHairSpread(float DeltaTime)
 		CrossHairShootingFactor = FMath::FInterpTo(CrossHairShootingFactor, 0.0f, DeltaTime, 60.0f);
 	}
 
-	CrossHairMultiplier = 0.35f + CrossHairVelocityFactor + CrossHairInAirFactor - CrossHairAimFactor + CrossHairShootingFactor;
+	CrossHairMultiplier = 0.25f + CrossHairVelocityFactor + CrossHairInAirFactor - CrossHairAimFactor + CrossHairShootingFactor;
 }
 
 void AShooterCharacter::StartCrossHairBulletFire()
@@ -181,6 +185,25 @@ void AShooterCharacter::StartCrossHairBulletFire()
 void AShooterCharacter::FinishCrossHairBulletFire()
 {
 	isFiringBullet = false;
+}
+
+void AShooterCharacter::StartFireTimer()
+{
+	if (ShouldFire)
+	{
+		FireWeapon();
+		ShouldFire = false;
+		GetWorldTimerManager().SetTimer(AutoFireTimer, this, &AShooterCharacter::FinishFireTimer, AutomaticGunFireRate);
+	}
+}
+
+void AShooterCharacter::FinishFireTimer()
+{
+	ShouldFire = true;
+	if (IsFireButtonPressed)
+	{
+		StartFireTimer();
+	}
 }
 
 void AShooterCharacter::MoveForward(float Valeu)
@@ -337,6 +360,17 @@ void AShooterCharacter::AimingButtonRelease()
 	IsAiming = false;
 }
 
+void AShooterCharacter::FireButtonPressed()
+{
+	IsFireButtonPressed = true;
+	StartFireTimer();
+}
+
+void AShooterCharacter::FireButtonReleased()
+{
+	IsFireButtonPressed = false;
+}
+
 // Called to bind functionality to input
 void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -353,7 +387,8 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 	
-	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this, &AShooterCharacter::FireWeapon);
+	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this, &AShooterCharacter::FireButtonPressed);
+	PlayerInputComponent->BindAction("FireButton", IE_Released, this, &AShooterCharacter::FireButtonReleased);
 	
 	PlayerInputComponent->BindAction("AimingButton", IE_Pressed, this, &AShooterCharacter::AimingButtonPressed);
 	PlayerInputComponent->BindAction("AimingButton", IE_Released, this, &AShooterCharacter::AimingButtonRelease);

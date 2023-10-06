@@ -59,6 +59,10 @@ protected:
 	void AimingButtonPressed();
 	void AimingButtonRelease();
 
+	void FireButtonPressed();
+	void FireButtonReleased();
+
+
 private:
 
 	void CameraInterpZoom(float DeltaTime);
@@ -69,10 +73,14 @@ private:
 	void CalculateCrossHairSpread(float DeltaTime);
 
 	void StartCrossHairBulletFire();
-	
 	//Needs to a be a Ufunction to used as callback for FTimerHandle
 	UFUNCTION()
 	void FinishCrossHairBulletFire();
+
+
+	void StartFireTimer();
+	UFUNCTION()
+	void FinishFireTimer();
 
 public:	
 	// Called every frame
@@ -186,6 +194,16 @@ private:
 
 	FTimerHandle CrossHairShootTimer;
 
+	//=======Automatic Fire=========
+
+	bool IsFireButtonPressed;
+
+	//True when fire is allowd 
+	bool ShouldFire;
+
+	float AutomaticGunFireRate;
+
+	FTimerHandle AutoFireTimer;
 
 public:
 
