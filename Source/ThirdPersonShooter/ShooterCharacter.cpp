@@ -10,6 +10,9 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "DrawDebugHelpers.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Weapon.h"
+#include "Item.h"
 
 
 
@@ -47,7 +50,8 @@ AShooterCharacter::AShooterCharacter() :
 	//AutomaticFireGunRate
 	AutomaticGunFireRate(0.1f),
 	ShouldFire(true),
-	IsFireButtonPressed(false)
+	IsFireButtonPressed(false),
+	ShouldTraceForItens(false)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -87,6 +91,7 @@ void AShooterCharacter::BeginPlay()
 		CameraCurrentFOV = CameraDefaultFOV;
 	}
 
+	EquipWeapon(SpawnDefaultWeapon());
 }
 
 // Called every frame
@@ -96,7 +101,41 @@ void AShooterCharacter::Tick(float DeltaTime)
 
 	CameraInterpZoom(DeltaTime);
 	CalculateCrossHairSpread(DeltaTime);
-	SetLookHates();
+	SetLookRates();
+	TraceForItems();
+
+}
+
+void AShooterCharacter::TraceForItems()
+{
+	if (ShouldTraceForItens)
+	{
+		FHitResult ItemTraceResult;
+		FVector dummy;
+		if (TraceUnderCrossHair(ItemTraceResult, dummy))
+		{
+			AItem* HitItem = Cast<AItem>(ItemTraceResult.GetActor());
+
+			if (HitItem && HitItem->GetPickUpWidget())
+			{
+				HitItem->GetPickUpWidget()->SetVisibility(true); 
+			}
+			
+			if (TracedHitItemLastFrame)
+			{
+				if (HitItem != TracedHitItemLastFrame)
+				{
+					TracedHitItemLastFrame->GetPickUpWidget()->SetVisibility(false);
+				}
+			}
+
+			TracedHitItemLastFrame = HitItem;
+		}
+	}
+	else if (TracedHitItemLastFrame)
+	{
+		TracedHitItemLastFrame->GetPickUpWidget()->SetVisibility(false);
+	}
 }
 
 void AShooterCharacter::CameraInterpZoom(float DeltaTime)
@@ -118,7 +157,7 @@ void AShooterCharacter::CameraInterpZoom(float DeltaTime)
 		}
 	}
 }
-void AShooterCharacter::SetLookHates()
+void AShooterCharacter::SetLookRates()
 {
 	if (IsAiming && BaseTurnRate != AimingLookUpRate && BaseLookUpRate != AimingLookUpRate)
 	{
@@ -302,6 +341,86 @@ void AShooterCharacter::FireWeapon()
 
 bool AShooterCharacter::GetBeanEndLocation(const FVector& MuzzleScketLocation, FVector& OutBeanLocation)
 {
+	FHitResult FCrossHairHitResult;
+
+	if (TraceUnderCrossHair(FCrossHairHitResult, OutBeanLocation))
+	{
+		OutBeanLocation = FCrossHairHitResult.Location;
+	}
+	else // no trace hit
+	{
+
+	}
+
+	//Perform trace hit from the gun barrel
+	FHitResult WeaponTraceHit;
+	const FVector WeaponTraceStart{ MuzzleScketLocation };
+	const FVector StartToEnd{ OutBeanLocation - MuzzleScketLocation };
+	const FVector WeaponTraceEnd{ MuzzleScketLocation + StartToEnd * 1.25f };
+
+	GetWorld()->LineTraceSingleByChannel(WeaponTraceHit, WeaponTraceStart, WeaponTraceEnd, ECollisionChannel::ECC_Visibility);
+
+	if (WeaponTraceHit.bBlockingHit)
+	{
+		OutBeanLocation = WeaponTraceHit.Location;
+		return true;
+	}
+	/*else if (FCrossHairHitResult.bBlockingHit)
+	{
+		return true;
+	}*/
+	return false;
+
+	//FVector2D ViewportSize;
+
+	//if (GEngine && GEngine->GameViewport)
+	//{
+	//	GEngine->GameViewport->GetViewportSize(ViewportSize);
+	//}
+
+	//FVector2D CrossHairLocation(ViewportSize.X / 2.0f, ViewportSize.Y / 2.0f);
+	////CrossHairLocation.Y -= 70.f; // This Ugly god
+
+	//FVector CrossHairWorldPosition;
+	//FVector CrossHairWorldDirection;
+
+	//bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(UGameplayStatics::GetPlayerController(this, 0), CrossHairLocation, CrossHairWorldPosition, CrossHairWorldDirection);
+
+	//if (bScreenToWorld)
+	//{
+	//	//Perform hit from CrossHair
+	//	FHitResult ScreenTraceHit;
+	//	const FVector Start{ CrossHairWorldPosition };
+	//	const FVector End{ CrossHairWorldPosition + CrossHairWorldDirection * 50'000.0f };
+
+	//	OutBeanLocation = End;
+	//	GetWorld()->LineTraceSingleByChannel(ScreenTraceHit, Start, End, ECollisionChannel::ECC_Visibility);
+
+	//	if (ScreenTraceHit.bBlockingHit)
+	//	{
+	//		OutBeanLocation = ScreenTraceHit.Location;
+	//	}
+
+	//	//Perform trace hit from the gun barrel
+	//	FHitResult WeaponTraceHit;
+	//	const FVector WeaponTraceStart{ MuzzleScketLocation };
+	//	const FVector WeaponTraceEnd{ OutBeanLocation };
+
+	//	GetWorld()->LineTraceSingleByChannel(WeaponTraceHit, WeaponTraceStart, WeaponTraceEnd, ECollisionChannel::ECC_Visibility);
+
+	//	if (WeaponTraceHit.bBlockingHit)
+	//	{
+	//		OutBeanLocation = WeaponTraceHit.Location;
+	//	}
+
+	//	
+	//	return true;
+	//}
+	//return false;
+}
+
+bool AShooterCharacter::TraceUnderCrossHair(FHitResult& OutHitResult, FVector& OutHitLocation)
+{
 	FVector2D ViewportSize;
 
 	if (GEngine && GEngine->GameViewport)
@@ -310,42 +429,26 @@ bool AShooterCharacter::GetBeanEndLocation(const FVector& MuzzleScketLocation, F
 	}
 
 	FVector2D CrossHairLocation(ViewportSize.X / 2.0f, ViewportSize.Y / 2.0f);
-	//CrossHairLocation.Y -= 70.f; // This Ugly god
 
 	FVector CrossHairWorldPosition;
 	FVector CrossHairWorldDirection;
 
 	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(UGameplayStatics::GetPlayerController(this, 0), CrossHairLocation, CrossHairWorldPosition, CrossHairWorldDirection);
-
+	
 	if (bScreenToWorld)
 	{
-		//Perform hit from CrossHair
-		FHitResult ScreenTraceHit;
 		const FVector Start{ CrossHairWorldPosition };
 		const FVector End{ CrossHairWorldPosition + CrossHairWorldDirection * 50'000.0f };
+		OutHitLocation = End;
 
-		OutBeanLocation = End;
-		GetWorld()->LineTraceSingleByChannel(ScreenTraceHit, Start, End, ECollisionChannel::ECC_Visibility);
 
-		if (ScreenTraceHit.bBlockingHit)
+		GetWorld()->LineTraceSingleByChannel(OutHitResult, Start, End, ECollisionChannel::ECC_Visibility);
+
+		if (OutHitResult.bBlockingHit)
 		{
-			OutBeanLocation = ScreenTraceHit.Location;
+			OutHitLocation = OutHitResult.Location;
+			return true;
 		}
-
-		//Perform trace hit from the gun barrel
-		FHitResult WeaponTraceHit;
-		const FVector WeaponTraceStart{ MuzzleScketLocation };
-		const FVector WeaponTraceEnd{ OutBeanLocation };
-
-		GetWorld()->LineTraceSingleByChannel(WeaponTraceHit, WeaponTraceStart, WeaponTraceEnd, ECollisionChannel::ECC_Visibility);
-
-		if (WeaponTraceHit.bBlockingHit)
-		{
-			OutBeanLocation = ScreenTraceHit.Location;
-		}
-
-		
-		return true;
 	}
 	return false;
 }
@@ -371,6 +474,32 @@ void AShooterCharacter::FireButtonReleased()
 	IsFireButtonPressed = false;
 }
 
+AWeapon* AShooterCharacter::SpawnDefaultWeapon()
+{
+	if (DefaultWeaponClass)
+	{
+		return GetWorld()->SpawnActor<AWeapon>(DefaultWeaponClass);
+	}
+
+	return nullptr;
+}
+
+void AShooterCharacter::EquipWeapon(AWeapon* Weapon)
+{
+	if (Weapon)
+	{
+		const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(FName("Right_Hand_Socket"));
+
+		if (HandSocket)
+		{
+			HandSocket->AttachActor(Weapon, GetMesh());
+		}
+
+		EquippedWeapon = Weapon;
+		EquippedWeapon->SetItemState(EItemState::EIS_Equipped);
+	}
+}
+
 // Called to bind functionality to input
 void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -392,5 +521,19 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	
 	PlayerInputComponent->BindAction("AimingButton", IE_Pressed, this, &AShooterCharacter::AimingButtonPressed);
 	PlayerInputComponent->BindAction("AimingButton", IE_Released, this, &AShooterCharacter::AimingButtonRelease);
+}
+
+void AShooterCharacter::InvrementOverlappedItemCount(int8 Ammount)
+{
+	if (OverlappedItemCount + Ammount <= 0)
+	{
+		OverlappedItemCount = 0;
+		ShouldTraceForItens = false;
+	}
+	else
+	{
+		OverlappedItemCount += Ammount;
+		ShouldTraceForItens = true;
+	}
 }
 
