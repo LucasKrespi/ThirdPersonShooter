@@ -51,7 +51,10 @@ AShooterCharacter::AShooterCharacter() :
 	AutomaticGunFireRate(0.1f),
 	ShouldFire(true),
 	IsFireButtonPressed(false),
-	ShouldTraceForItens(false)
+	ShouldTraceForItens(false),
+	//Camera Intrp valeus
+	CameraInterpDistance(250.0f),
+	CameraInterpElevation(65.0f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -114,22 +117,22 @@ void AShooterCharacter::TraceForItems()
 		FVector dummy;
 		if (TraceUnderCrossHair(ItemTraceResult, dummy))
 		{
-			AItem* HitItem = Cast<AItem>(ItemTraceResult.GetActor());
+			TraceHitItem = Cast<AItem>(ItemTraceResult.GetActor());
 
-			if (HitItem && HitItem->GetPickUpWidget())
+			if (TraceHitItem && TraceHitItem->GetPickUpWidget())
 			{
-				HitItem->GetPickUpWidget()->SetVisibility(true); 
+				TraceHitItem->GetPickUpWidget()->SetVisibility(true);
 			}
 			
 			if (TracedHitItemLastFrame)
 			{
-				if (HitItem != TracedHitItemLastFrame)
+				if (TraceHitItem != TracedHitItemLastFrame)
 				{
 					TracedHitItemLastFrame->GetPickUpWidget()->SetVisibility(false);
 				}
 			}
 
-			TracedHitItemLastFrame = HitItem;
+			TracedHitItemLastFrame = TraceHitItem;
 		}
 	}
 	else if (TracedHitItemLastFrame)
@@ -474,6 +477,18 @@ void AShooterCharacter::FireButtonReleased()
 	IsFireButtonPressed = false;
 }
 
+void AShooterCharacter::SelectButtonPressed()
+{
+	if (TraceHitItem)
+	{
+		TraceHitItem->StartItemCurv(this);
+	}
+}
+
+void AShooterCharacter::SelectButtonReleased()
+{
+}
+
 AWeapon* AShooterCharacter::SpawnDefaultWeapon()
 {
 	if (DefaultWeaponClass)
@@ -500,6 +515,26 @@ void AShooterCharacter::EquipWeapon(AWeapon* Weapon)
 	}
 }
 
+void AShooterCharacter::DropWeapon()
+{
+	if (EquippedWeapon)
+	{
+		FDetachmentTransformRules DetachmentTrasformRules(EDetachmentRule::KeepWorld, true);
+		EquippedWeapon->GetMesh()->DetachFromComponent(DetachmentTrasformRules);
+
+		EquippedWeapon->SetItemState(EItemState::EIS_Falling);
+		EquippedWeapon->ThrowWeapon();
+	}
+}
+
+void AShooterCharacter::SwapWeapon(AWeapon* WeaponToSawp)
+{
+	DropWeapon();
+	EquipWeapon(WeaponToSawp);
+	TraceHitItem = nullptr;
+	TracedHitItemLastFrame = nullptr;
+}
+
 // Called to bind functionality to input
 void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -521,6 +556,9 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	
 	PlayerInputComponent->BindAction("AimingButton", IE_Pressed, this, &AShooterCharacter::AimingButtonPressed);
 	PlayerInputComponent->BindAction("AimingButton", IE_Released, this, &AShooterCharacter::AimingButtonRelease);
+	
+	PlayerInputComponent->BindAction("Select", IE_Pressed, this, &AShooterCharacter::SelectButtonPressed);
+	PlayerInputComponent->BindAction("Select", IE_Released, this, &AShooterCharacter::SelectButtonReleased);
 }
 
 void AShooterCharacter::InvrementOverlappedItemCount(int8 Ammount)
@@ -534,6 +572,25 @@ void AShooterCharacter::InvrementOverlappedItemCount(int8 Ammount)
 	{
 		OverlappedItemCount += Ammount;
 		ShouldTraceForItens = true;
+	}
+}
+
+FVector AShooterCharacter::GetCameraInterpLocation()
+{
+	const FVector CameraWorldLocation{ FollowCamera->GetComponentLocation() };
+	const FVector CameraForward{ FollowCamera->GetForwardVector() };
+
+
+	return CameraWorldLocation + CameraForward * CameraInterpDistance + FVector(0.0f, 0.0f, CameraInterpElevation);
+}
+
+void AShooterCharacter::GetPickUpItem(AItem* Item)
+{
+	auto Weapon = Cast<AWeapon>(Item);
+
+	if (Weapon)
+	{
+		SwapWeapon(Weapon);
 	}
 }
 

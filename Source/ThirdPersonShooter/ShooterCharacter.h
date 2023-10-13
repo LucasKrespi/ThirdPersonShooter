@@ -63,9 +63,15 @@ protected:
 	void FireButtonPressed();
 	void FireButtonReleased();
 
+	void SelectButtonPressed();
+	void SelectButtonReleased();
+	
 	class AWeapon* SpawnDefaultWeapon();
 	void EquipWeapon(AWeapon* Weapon);
 
+	void DropWeapon();
+
+	void SwapWeapon(AWeapon* WeaponToSawp);
 
 private:
 
@@ -221,6 +227,10 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "True"))
 	class AItem* TracedHitItemLastFrame;
 
+	//The item being hit by trace func, can be null
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "True"))
+	AItem* TraceHitItem;
+
 	//=========Weapon==========
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "True"))
 	AWeapon* EquippedWeapon;
@@ -229,6 +239,13 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "True"))
 	TSubclassOf<AWeapon> DefaultWeaponClass;
 
+	//Distance from the Camera for item interp destinatiom
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "True"))
+	float CameraInterpDistance;	
+	
+	//Elevation from the Camera for item interp destinatiom
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "True"))
+	float CameraInterpElevation;
 public:
 
 	//Return Camera Boom subObject
@@ -242,8 +259,13 @@ public:
 	FORCEINLINE int8 GetOverlappedItemCount() const { return OverlappedItemCount; }
 
 	void InvrementOverlappedItemCount(int8 Ammount);
+	
 	//Its not inline because is blueprint callable
 	UFUNCTION(BlueprintCallable)
 	float const GetCrossHairMultiplier() const { return CrossHairMultiplier; }
+
+	FVector GetCameraInterpLocation();
+
+	void GetPickUpItem(AItem* Item);
 
 };

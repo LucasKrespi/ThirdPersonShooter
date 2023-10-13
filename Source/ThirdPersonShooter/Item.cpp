@@ -5,6 +5,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/SphereComponent.h"
+#include "Curves/CurveFloat.h"
+#include "Camera/CameraComponent.h"
 #include "ShooterCharacter.h"
 
 // Sets default values
@@ -12,7 +14,15 @@ AItem::AItem():
 	ItemName(FString("Default")),
 	ItemCount(0),
 	ItemRarity(EItemRarity::EIR_Common),
-	ItemState(EItemState::EIS_PickUp)
+	ItemState(EItemState::EIS_PickUp),
+	//Item interp Vectors
+	ZCurveTime(0.7f),
+	ItemInterpStartLocation(FVector(0.0f)),
+	CameraTargetLocation(FVector(0.0f)),
+	isInterping(false),
+	ItemInterpX(0.0f),
+	ItemInterpY(0.0f),
+	InterpInitialYawOffset(0.0f)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -131,6 +141,7 @@ void AItem::SetItemProperties(EItemState State)
 		ItemMesh->SetVisibility(true);
 		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ItemMesh->SetEnableGravity(false);
 
 		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 		AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -141,6 +152,19 @@ void AItem::SetItemProperties(EItemState State)
 
 		break;
 	case EItemState::EIS_EquipInterp:
+		ItemMesh->SetSimulatePhysics(false);
+		ItemMesh->SetVisibility(true);
+		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ItemMesh->SetEnableGravity(false);
+
+		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		PickupWidget->SetVisibility(false);
 		break;
 	case EItemState::EIS_PickedUp:
 		break;
@@ -150,6 +174,7 @@ void AItem::SetItemProperties(EItemState State)
 		ItemMesh->SetVisibility(true);
 		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ItemMesh->SetEnableGravity(false);
 
 		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -157,8 +182,21 @@ void AItem::SetItemProperties(EItemState State)
 		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+		PickupWidget->SetVisibility(false);
 		break;
 	case EItemState::EIS_Falling:
+
+		ItemMesh->SetSimulatePhysics(true);
+		ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		ItemMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
+		ItemMesh->SetEnableGravity(true);
+
+		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		break;
 	case EItemState::EIS_MAX:
 		break;
@@ -167,10 +205,66 @@ void AItem::SetItemProperties(EItemState State)
 	}
 }
 
+void AItem::FinishInterping()
+{
+	isInterping = false;
+	if (Character)
+	{
+		Character->GetPickUpItem(this);
+	}
+	SetActorScale3D(FVector(1.0f));
+}
+
+void AItem::ItemInterp(float DeltaTime)
+{
+	if (!isInterping) return;
+
+	if (Character && ItemZCurve)
+	{
+		const float ElapsedTime = GetWorldTimerManager().GetTimerElapsed(ItemInterpTimer);
+		const float CurveValeu = ItemZCurve->GetFloatValue(ElapsedTime);
+
+		FVector ItemLocation = ItemInterpStartLocation;
+		const FVector CameraInterpLocation = Character->GetCameraInterpLocation();
+		const FVector ItemToCamera{ FVector(0.0f,0.0f, (CameraInterpLocation - ItemLocation).Z) };
+		
+		//Scale to multiply with curve value;
+		const float DeltaZ = ItemToCamera.Size();
+
+		ItemLocation.Z = CurveValeu * DeltaZ;
+
+		//X and Y Location
+		const FVector CurrentLocation{ GetActorLocation() };
+		const float InpterpXValue = FMath::FInterpTo(CurrentLocation.X, CameraInterpLocation.X, DeltaTime, 30.0f);
+		const float InpterpYValue = FMath::FInterpTo(CurrentLocation.Y, CameraInterpLocation.Y, DeltaTime, 30.0f);
+
+		ItemLocation.X = InpterpXValue;
+		ItemLocation.Y = InpterpYValue;
+
+		SetActorLocation(ItemLocation, true, nullptr, ETeleportType::TeleportPhysics);
+
+		//Rotation
+		const FRotator CameraRotation{ Character->GetFollowCamera()->GetComponentRotation() };
+		FRotator ItemRotation{ 0.0f, CameraRotation.Yaw + InterpInitialYawOffset, 0.0f };
+
+		SetActorRotation(ItemRotation, ETeleportType::TeleportPhysics);
+
+		//Scale
+		if (ItemScaleCurve)
+		{
+			const float ScaleCurveValeu = ItemScaleCurve->GetFloatValue(ElapsedTime);
+			SetActorScale3D(FVector(ScaleCurveValeu, ScaleCurveValeu, ScaleCurveValeu));
+		}
+	}
+
+}
+
 // Called every frame
 void AItem::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	ItemInterp(DeltaTime);
 }
 
 void AItem::SetItemState(EItemState State)
@@ -178,5 +272,21 @@ void AItem::SetItemState(EItemState State)
 	ItemState = State;
 
 	SetItemProperties(ItemState);
+}
+
+void AItem::StartItemCurv(AShooterCharacter* Char)
+{
+	Character = Char;
+
+	ItemInterpStartLocation = GetActorLocation();
+	isInterping = true;
+	SetItemState(EItemState::EIS_EquipInterp);
+
+	GetWorldTimerManager().SetTimer(ItemInterpTimer, this, &AItem::FinishInterping, ZCurveTime);
+
+	const float CameraRotationYaw{ static_cast<float>(Character->GetFollowCamera()->GetComponentRotation().Yaw) };
+	const float ItemRotationYaw{ static_cast<float>(GetActorRotation().Yaw) };
+
+	InterpInitialYawOffset = ItemRotationYaw - CameraRotationYaw;
 }
 
