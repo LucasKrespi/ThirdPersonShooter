@@ -53,6 +53,7 @@ protected:
 
 	bool GetBeanEndLocation(const FVector& MuzzleScketLocation, FVector& OutBeanLocation);
 
+	bool TraceUnderCrossHair(FHitResult& OutHitResult, FVector& OutHitLocation);
 	/**
 	* Set isAiming to true or false;
 	*/
@@ -62,23 +63,35 @@ protected:
 	void FireButtonPressed();
 	void FireButtonReleased();
 
+	void SelectButtonPressed();
+	void SelectButtonReleased();
+	
+	class AWeapon* SpawnDefaultWeapon();
+	void EquipWeapon(AWeapon* Weapon);
+
+	void DropWeapon();
+
+	void SwapWeapon(AWeapon* WeaponToSawp);
 
 private:
 
 	void CameraInterpZoom(float DeltaTime);
 
 	/** Set base look up and base turn hates on aiming*/
-	void SetLookHates();
+	void SetLookRates();
 
 	void CalculateCrossHairSpread(float DeltaTime);
 
 	void StartCrossHairBulletFire();
+
+	void TraceForItems();
+	
 	//Needs to a be a Ufunction to used as callback for FTimerHandle
 	UFUNCTION()
 	void FinishCrossHairBulletFire();
 
-
 	void StartFireTimer();
+	
 	UFUNCTION()
 	void FinishFireTimer();
 
@@ -205,6 +218,34 @@ private:
 
 	FTimerHandle AutoFireTimer;
 
+	//======Item Detection===========
+
+	bool ShouldTraceForItens;
+
+	int8 OverlappedItemCount;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "True"))
+	class AItem* TracedHitItemLastFrame;
+
+	//The item being hit by trace func, can be null
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "True"))
+	AItem* TraceHitItem;
+
+	//=========Weapon==========
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "True"))
+	AWeapon* EquippedWeapon;
+
+	//Set this on blueprints for starter default weapon
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "True"))
+	TSubclassOf<AWeapon> DefaultWeaponClass;
+
+	//Distance from the Camera for item interp destinatiom
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "True"))
+	float CameraInterpDistance;	
+	
+	//Elevation from the Camera for item interp destinatiom
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "True"))
+	float CameraInterpElevation;
 public:
 
 	//Return Camera Boom subObject
@@ -215,8 +256,16 @@ public:
 
 	FORCEINLINE bool GetIsAiming() const { return IsAiming; }
 
+	FORCEINLINE int8 GetOverlappedItemCount() const { return OverlappedItemCount; }
+
+	void InvrementOverlappedItemCount(int8 Ammount);
+	
 	//Its not inline because is blueprint callable
 	UFUNCTION(BlueprintCallable)
 	float const GetCrossHairMultiplier() const { return CrossHairMultiplier; }
+
+	FVector GetCameraInterpLocation();
+
+	void GetPickUpItem(AItem* Item);
 
 };
