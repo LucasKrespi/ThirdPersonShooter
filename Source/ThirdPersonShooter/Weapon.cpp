@@ -5,7 +5,12 @@
 
 AWeapon::AWeapon() :
 	ThrowWeaponTime(0.7f),
-	isFalling(false)
+	isFalling(false),
+	Ammo(32),
+	MagazineCapacity(32),
+	WeaponType(EWeaponType::EWT_SMG),
+	AmmoType(EAmmoType::EAT_9mm),
+	ReloadMontageSelection(FName("Reload_SMG"))
 {
 	PrimaryActorTick.bCanEverTick = true;
 }
@@ -40,6 +45,24 @@ void AWeapon::ThrowWeapon()
 
 	isFalling = true;
 	GetWorldTimerManager().SetTimer(ThrowWeaponTimer, this, &AWeapon::StopFalling, ThrowWeaponTime);
+}
+
+void AWeapon::ReloadAmmo(int32 Ammount)
+{
+	checkf(Ammo + Ammount <= MagazineCapacity, TEXT("Attempted to reload with more them magazine capacity"));
+	Ammo += Ammount;
+}
+
+void AWeapon::DecrementAmmo()
+{
+	if (Ammo - 1 <= 0)
+	{
+		Ammo = 0;
+	}
+	else
+	{
+		--Ammo;
+	}
 }
 
 void AWeapon::StopFalling()

@@ -4,7 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "AmmoType.h"
 #include "ShooterCharacter.generated.h"
+
+UENUM(BlueprintType)
+enum class ECombatState : uint8
+{
+	ECS_Unocupied UMETA(DisplayName = "Unocupied"),
+	ECS_FireTimerInProgress UMETA(DisplayName = "FireTimerInProgress"),
+	ECS_Reloading UMETA(DisplayName = "Reloading"),
+
+	ECS_MAX UMETA(DisplayName = "DefaultMAX")
+};
 
 UCLASS()
 class THIRDPERSONSHOOTER_API AShooterCharacter : public ACharacter
@@ -51,6 +62,10 @@ protected:
 	*/
 	void FireWeapon();
 
+	void PlayHipFireMontage();
+	void SendBullet();
+	void PlayFireSound();
+
 	bool GetBeanEndLocation(const FVector& MuzzleScketLocation, FVector& OutBeanLocation);
 
 	bool TraceUnderCrossHair(FHitResult& OutHitResult, FVector& OutHitLocation);
@@ -65,6 +80,8 @@ protected:
 
 	void SelectButtonPressed();
 	void SelectButtonReleased();
+
+	void ReloadButtonPressed();
 	
 	class AWeapon* SpawnDefaultWeapon();
 	void EquipWeapon(AWeapon* Weapon);
@@ -72,6 +89,18 @@ protected:
 	void DropWeapon();
 
 	void SwapWeapon(AWeapon* WeaponToSawp);
+
+	void InitializeAmmoMap();
+
+	bool WeaponHasAmmo();
+
+	void ReloadWeapon();
+
+	UFUNCTION(BlueprintCallable)
+	void FinishReloading();
+
+	/** Checks to see if we got ammo for the corrent weapon */
+	bool CarryingAmmo();
 
 private:
 
@@ -246,6 +275,25 @@ private:
 	//Elevation from the Camera for item interp destinatiom
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "True"))
 	float CameraInterpElevation;
+
+	//========= Ammo =========
+	//map to keep track of all ammo types;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "True"))
+	TMap<EAmmoType, int32> AmmoMap;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Items, meta = (AllowPrivateAccess = "true"))
+	int32 Starting9mmAmmo;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Items, meta = (AllowPrivateAccess = "true"))
+	int32 StartingARAmmo;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "True"))
+	ECombatState CombatState;
+
+	//========= Reload ========
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* ReloadMontage;
+
 public:
 
 	//Return Camera Boom subObject
