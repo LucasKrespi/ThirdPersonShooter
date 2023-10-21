@@ -16,10 +16,16 @@ class THIRDPERSONSHOOTER_API UShooterAnimInstance : public UAnimInstance
 
 public:
 
+	UShooterAnimInstance();
+
 	UFUNCTION(BlueprintCallable)
 	void UpdateAnimationProperties(float DeltaTime);
 
 	virtual void NativeInitializeAnimation() override;
+
+protected:
+	//Handle turn in place variabels
+	void TurnInPlace();
 
 private:
 	
@@ -44,5 +50,21 @@ private:
 	float LastMovementOffsetYaw;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Movement, meta = (AllowPrivateAccess = "true"))
-	bool isAiming;
+	bool IsAiming;
+
+	//Yaw of the character this frame
+	float CharacterYaw;
+
+	//Yaw of the character the previous frame
+	float CharacterYawLastFrame;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "TurnInPlace", meta = (AllowPrivateAccess = "true"))
+	float RootYawOffset;
+
+	//Rotation curve value this frame
+	float RotationCurve;
+	
+	//Rotation curve value last frame
+	float RotationCurveLastFrame;
+
 };

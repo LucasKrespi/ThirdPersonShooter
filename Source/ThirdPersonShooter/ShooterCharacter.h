@@ -102,6 +102,15 @@ protected:
 	/** Checks to see if we got ammo for the corrent weapon */
 	bool CarryingAmmo();
 
+	/** Called from Anim Blueprint with Grab clip notify */
+	UFUNCTION(BlueprintCallable)
+	void GrabClip();
+
+	/** Called from Anim Blueprint with Grab clip notify */
+	UFUNCTION(BlueprintCallable)
+	void ReleaseClip();
+
+
 private:
 
 	void CameraInterpZoom(float DeltaTime);
@@ -293,6 +302,12 @@ private:
 	//========= Reload ========
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* ReloadMontage;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	FTransform ClipTransform;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	USceneComponent* HandSceneComponent;
 
 public:
 

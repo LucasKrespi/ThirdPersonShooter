@@ -119,6 +119,14 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
 	UCurveFloat* ItemScaleCurve;
 
+	//Sound played on item pick up
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	class USoundCue* PickUpSound;
+
+	//Sound played when item is equipped
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	USoundCue* EquipedSound;
+
 public:
 
 	FORCEINLINE UWidgetComponent* GetPickUpWidget() const { return PickupWidget; }
@@ -128,6 +136,10 @@ public:
 	FORCEINLINE UBoxComponent* GetCollisionBox() const { return CollisionBox; }
 
 	FORCEINLINE USkeletalMeshComponent* GetMesh() const { return ItemMesh; }
+
+	FORCEINLINE USoundCue* GetPickUpSound() const { return PickUpSound; }
+	
+	FORCEINLINE USoundCue* GetEquipedSound() const { return EquipedSound; }
 
 	FORCEINLINE EItemState GetItemState() const { return ItemState; }
 	void SetItemState(EItemState State);

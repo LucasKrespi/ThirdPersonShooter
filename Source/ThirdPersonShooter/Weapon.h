@@ -54,6 +54,13 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
 	FName ReloadMontageSelection;
 
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
+	bool bMovingClip;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
+	FName ClipBoneName;
+
 public:
 
 	void ThrowWeapon();
@@ -68,7 +75,11 @@ public:
 	
 	FORCEINLINE int32 GetMagazineCapacity() const { return MagazineCapacity; }
 
+	FORCEINLINE FName GetClipBoneName() const { return ClipBoneName; }
+
 	void ReloadAmmo(int32 Ammount);
 	//Called from character class when firin;
 	void DecrementAmmo();
+
+	FORCEINLINE void SetMovingClip(bool move) { bMovingClip = move; }
 };
