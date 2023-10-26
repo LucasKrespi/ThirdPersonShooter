@@ -66,7 +66,7 @@ protected:
 	void SendBullet();
 	void PlayFireSound();
 
-	bool GetBeanEndLocation(const FVector& MuzzleScketLocation, FVector& OutBeanLocation);
+	bool GetBeanEndLocation(const FVector& MuzzleScketLocation, FHitResult& OutHitResult);
 
 	bool TraceUnderCrossHair(FHitResult& OutHitResult, FVector& OutHitLocation);
 	/**
@@ -110,6 +110,7 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ReleaseClip();
 
+	void CrouchButtonPressed();
 
 private:
 
@@ -309,6 +310,11 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* HandSceneComponent;
 
+	//===========Crouching==========
+	//true when crounching
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	bool IsCrouching;
+
 public:
 
 	//Return Camera Boom subObject
@@ -320,6 +326,10 @@ public:
 	FORCEINLINE bool GetIsAiming() const { return IsAiming; }
 
 	FORCEINLINE int8 GetOverlappedItemCount() const { return OverlappedItemCount; }
+
+	FORCEINLINE ECombatState GetCombateState() const { return CombatState; }
+
+	FORCEINLINE bool GetIsCrounching() const { return IsCrouching; }
 
 	void InvrementOverlappedItemCount(int8 Ammount);
 	

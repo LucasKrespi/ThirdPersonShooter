@@ -80,6 +80,8 @@ public:
 	void ReloadAmmo(int32 Ammount);
 	//Called from character class when firin;
 	void DecrementAmmo();
+	
+	bool ClipIsFull();
 
 	FORCEINLINE void SetMovingClip(bool move) { bMovingClip = move; }
 };

@@ -13,6 +13,7 @@
 #include "Components/WidgetComponent.h"
 #include "Weapon.h"
 #include "Item.h"
+#include "BulletHitInterface.h"
 
 
 
@@ -58,7 +59,8 @@ AShooterCharacter::AShooterCharacter() :
 	//StartingAmmo
 	Starting9mmAmmo(85),
 	StartingARAmmo(120),
-	CombatState(ECombatState::ECS_Unocupied)
+	CombatState(ECombatState::ECS_Unocupied),
+	IsCrouching(false)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -350,21 +352,34 @@ void AShooterCharacter::SendBullet()
 			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFlash, SocketTransform);
 		}
 
-		FVector BeanEndPoint;
+		FHitResult BeanHitResult;
 
-		if (GetBeanEndLocation(SocketTransform.GetLocation(), BeanEndPoint))
+		if (GetBeanEndLocation(SocketTransform.GetLocation(), BeanHitResult))
 		{
-			if (ImpactParticles)
+			//does hit actor implement hit bullet interface
+			if (BeanHitResult.GetActor())
 			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, BeanEndPoint);
-			}
+				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeanHitResult.GetActor());
 
-			if (BeanParticles)
-			{
-				UParticleSystemComponent* Bean = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeanParticles, SocketTransform);
+				if (BulletHitInterface)
+				{
+					BulletHitInterface->BulletHit_Implementation(BeanHitResult);
+				}
+				else //spawn default particles
+				{
+					if (ImpactParticles)
+					{
+						UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, BeanHitResult.Location);
+					}
 
-				if (Bean)
-					Bean->SetVectorParameter(FName("Target"), BeanEndPoint);
+					if (BeanParticles)
+					{
+						UParticleSystemComponent* Bean = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeanParticles, SocketTransform);
+
+						if (Bean)
+							Bean->SetVectorParameter(FName("Target"), BeanHitResult.Location);
+					}
+				}
 			}
 		}
 	}
@@ -378,9 +393,10 @@ void AShooterCharacter::PlayFireSound()
 	}
 }
 
-bool AShooterCharacter::GetBeanEndLocation(const FVector& MuzzleScketLocation, FVector& OutBeanLocation)
+bool AShooterCharacter::GetBeanEndLocation(const FVector& MuzzleScketLocation, FHitResult& OutHitResult)
 {
 	FHitResult FCrossHairHitResult;
+	FVector OutBeanLocation;
 
 	if (TraceUnderCrossHair(FCrossHairHitResult, OutBeanLocation))
 	{
@@ -392,19 +408,18 @@ bool AShooterCharacter::GetBeanEndLocation(const FVector& MuzzleScketLocation, F
 	}
 
 	//Perform trace hit from the gun barrel
-	FHitResult WeaponTraceHit;
 	const FVector WeaponTraceStart{ MuzzleScketLocation };
 	const FVector StartToEnd{ OutBeanLocation - MuzzleScketLocation };
 	const FVector WeaponTraceEnd{ MuzzleScketLocation + StartToEnd * 1.25f };
 
-	GetWorld()->LineTraceSingleByChannel(WeaponTraceHit, WeaponTraceStart, WeaponTraceEnd, ECollisionChannel::ECC_Visibility);
+	GetWorld()->LineTraceSingleByChannel(OutHitResult, WeaponTraceStart, WeaponTraceEnd, ECollisionChannel::ECC_Visibility);
 
-	if (WeaponTraceHit.bBlockingHit)
+	if (!OutHitResult.bBlockingHit)
 	{
-		OutBeanLocation = WeaponTraceHit.Location;
-		return true;
+		OutHitResult.Location = OutBeanLocation;
+		return false;
 	}
-	return false;
+	return true;
 }
 
 bool AShooterCharacter::TraceUnderCrossHair(FHitResult& OutHitResult, FVector& OutHitLocation)
@@ -549,7 +564,7 @@ void AShooterCharacter::ReloadWeapon()
 	if (CombatState != ECombatState::ECS_Unocupied) return;
 	if(EquippedWeapon == nullptr) return;
 
-	if (CarryingAmmo())
+	if (CarryingAmmo() && !EquippedWeapon->ClipIsFull())
 	{
 		//TODO: inplemment weapon type;
 		CombatState = ECombatState::ECS_Reloading;
@@ -631,6 +646,14 @@ void AShooterCharacter::ReleaseClip()
 	EquippedWeapon->SetMovingClip(false);
 }
 
+void AShooterCharacter::CrouchButtonPressed()
+{
+	if (!GetCharacterMovement()->IsFalling())
+	{
+		IsCrouching = !IsCrouching;
+	}
+}
+
 // Called to bind functionality to input
 void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -657,6 +680,8 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Select", IE_Released, this, &AShooterCharacter::SelectButtonReleased);
 
 	PlayerInputComponent->BindAction("ReloadButton", IE_Pressed, this, &AShooterCharacter::ReloadButtonPressed);
+
+	PlayerInputComponent->BindAction("Crounch", IE_Pressed, this, &AShooterCharacter::CrouchButtonPressed);
 }
 
 void AShooterCharacter::InvrementOverlappedItemCount(int8 Ammount)
@@ -695,4 +720,5 @@ void AShooterCharacter::GetPickUpItem(AItem* Item)
 		SwapWeapon(Weapon);
 	}
 }
+
 

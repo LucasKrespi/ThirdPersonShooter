@@ -66,6 +66,11 @@ void AWeapon::DecrementAmmo()
 	}
 }
 
+bool AWeapon::ClipIsFull()
+{
+	return Ammo >= MagazineCapacity;
+}
+
 void AWeapon::StopFalling()
 {
 	isFalling = false;

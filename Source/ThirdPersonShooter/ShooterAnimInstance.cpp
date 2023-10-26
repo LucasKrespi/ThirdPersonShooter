@@ -13,9 +13,15 @@ UShooterAnimInstance::UShooterAnimInstance() :
 	MovementOffsetYaw(0.0f),
 	LastMovementOffsetYaw(0.0f),
 	IsAiming(false),
-	CharacterYaw(0.0f),
-	CharacterYawLastFrame(0.0f),
-	RootYawOffset(0.0f)
+	TIPCharacterYaw(0.0f),
+	TIPCharacterYawLastFrame(0.0f),
+	RootYawOffset(0.0f),
+	Pitch(0.0f),
+	IsReloading(false),
+	OffsetState(EOffsetState::EOS_Hip),
+	CharacterRotator(FRotator(0.0f)),
+	CharacterRotatorLastFrame(FRotator(0.0f)),
+	YawDelta(0.0f)
 {
 
 }
@@ -27,6 +33,8 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 
 	if (ShooterCharacter)
 	{
+		IsCrounching = ShooterCharacter->GetIsCrounching();
+		IsReloading = ShooterCharacter->GetCombateState() == ECombatState::ECS_Reloading;
 		//Get the lateral speed of the character from velocity
 		FVector Velocity{ ShooterCharacter->GetVelocity() };
 		Velocity.Z = 0;
@@ -50,9 +58,27 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 			LastMovementOffsetYaw = MovementOffsetYaw;
 
 		IsAiming = ShooterCharacter->GetIsAiming();
+
+		if (IsReloading)
+		{
+			OffsetState = EOffsetState::EOS_Reloading;
+		}
+		else if (IsInAir)
+		{
+			OffsetState = EOffsetState::EOS_InAir;
+		}
+		else if (ShooterCharacter->GetIsAiming())
+		{
+			OffsetState = EOffsetState::EOS_Aiming;
+		}
+		else
+		{
+			OffsetState = EOffsetState::EOS_Hip;
+		}
 	}
 
 	TurnInPlace();
+	Lean(DeltaTime);
 }
 
 void UShooterAnimInstance::NativeInitializeAnimation()
@@ -64,25 +90,27 @@ void UShooterAnimInstance::TurnInPlace()
 {
 	if (ShooterCharacter == nullptr) return;
 
-	if (Speed > 0)
+	Pitch = ShooterCharacter->GetBaseAimRotation().Pitch;
+
+	if (Speed > 0 || IsInAir)
 	{
 		//Don`t want to turn in place, character is moving
 		RootYawOffset = 0;
-		CharacterYaw = ShooterCharacter->GetActorRotation().Yaw;
-		CharacterYawLastFrame = CharacterYaw;
+		TIPCharacterYaw = ShooterCharacter->GetActorRotation().Yaw;
+		TIPCharacterYawLastFrame = TIPCharacterYaw;
 
 		RotationCurveLastFrame = 0.0f;
 		RotationCurve = 0.0f;
 	}
 	else
 	{
-		CharacterYawLastFrame = CharacterYaw;
-		CharacterYaw = ShooterCharacter->GetActorRotation().Yaw;
+		TIPCharacterYawLastFrame = TIPCharacterYaw;
+		TIPCharacterYaw = ShooterCharacter->GetActorRotation().Yaw;
 
-		const float YawDelta{ CharacterYaw - CharacterYawLastFrame };
+		const float TIPYawDelta{ TIPCharacterYaw - TIPCharacterYawLastFrame };
 
 		//Root yaw offset updated and clamped to [-180, 180] degrees
-		RootYawOffset = UKismetMathLibrary::NormalizeAxis(RootYawOffset - YawDelta);
+		RootYawOffset = UKismetMathLibrary::NormalizeAxis(RootYawOffset - TIPYawDelta);
 
 		//1.0 if turning 0.0 if not
 		const float Turning{ GetCurveValue(TEXT("Turning")) };
@@ -105,6 +133,23 @@ void UShooterAnimInstance::TurnInPlace()
 				RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
 			}
 		}
+
 	}
 
+}
+
+void UShooterAnimInstance::Lean(float DeltaTime)
+{
+	if (ShooterCharacter == nullptr) return;
+
+	CharacterRotatorLastFrame = CharacterRotator;
+	CharacterRotator = ShooterCharacter->GetActorRotation();
+
+	const FRotator Delta{UKismetMathLibrary::NormalizedDeltaRotator(CharacterRotator, CharacterRotatorLastFrame)};
+
+	const float Target{ (float)Delta.Yaw / DeltaTime };
+
+	const float Interp{ FMath::FInterpTo(YawDelta, Target, DeltaTime, 6.0f) };
+
+	YawDelta = FMath::Clamp(Interp, -90, 90);
 }
