@@ -61,6 +61,13 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
 	FName ClipBoneName;
 
+	//TODO: Add to data table
+	//Amount of damage caused by one bullet
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
+	float Damage;
+	//Amount of damage caused by one bullet in the head
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
+	float HeadShootDamage;
 public:
 
 	void ThrowWeapon();
@@ -76,6 +83,10 @@ public:
 	FORCEINLINE int32 GetMagazineCapacity() const { return MagazineCapacity; }
 
 	FORCEINLINE FName GetClipBoneName() const { return ClipBoneName; }
+	
+	FORCEINLINE float GetDamage() const { return Damage; }
+
+	FORCEINLINE float GetHeadShootDamage() const { return HeadShootDamage; }
 
 	void ReloadAmmo(int32 Ammount);
 	//Called from character class when firin;

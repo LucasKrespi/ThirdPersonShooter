@@ -14,6 +14,8 @@
 #include "Weapon.h"
 #include "Item.h"
 #include "BulletHitInterface.h"
+#include "Enemy.h"
+
 
 
 
@@ -379,6 +381,29 @@ void AShooterCharacter::SendBullet()
 						if (Bean)
 							Bean->SetVectorParameter(FName("Target"), BeanHitResult.Location);
 					}
+				}
+
+				AEnemy* HitEnemy = Cast<AEnemy>(BeanHitResult.GetActor());
+
+				if (HitEnemy)
+				{
+					int32 Damage{ };
+					bool headShoot{ false };
+					if (BeanHitResult.BoneName.ToString() == HitEnemy->GetHeadBone())
+					{
+						//Headshoot
+						Damage = EquippedWeapon->GetHeadShootDamage();
+						headShoot = true;
+					}
+					else
+					{
+						//Regular shoot
+						Damage = EquippedWeapon->GetDamage();
+					}
+					
+					UGameplayStatics::ApplyDamage(BeanHitResult.GetActor(), Damage, GetController(), this, UDamageType::StaticClass());
+
+					HitEnemy->ShowHitNumer(Damage, BeanHitResult.Location, headShoot);
 				}
 			}
 		}
