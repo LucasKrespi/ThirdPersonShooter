@@ -46,6 +46,8 @@ void AWeapon::ThrowWeapon()
 
 	isFalling = true;
 	GetWorldTimerManager().SetTimer(ThrowWeaponTimer, this, &AWeapon::StopFalling, ThrowWeaponTime);
+
+	EnableGlowMaterial();
 }
 
 void AWeapon::ReloadAmmo(int32 Ammount)

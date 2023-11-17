@@ -30,6 +30,14 @@ enum class EItemState : uint8
 	EIS_MAX UMETA(DisplayName = "DefaultMax")
 };
 
+UENUM(BlueprintType)
+enum class EItemType : uint8
+{
+	EIT_Ammo UMETA(DisplayName = "Ammo"),
+	EIT_Weapon UMETA(DisplayName = "Weapon"),
+	EIT_Max UMETA(DisplayName = "DefaultMax")
+};
+
 UCLASS()
 class THIRDPERSONSHOOTER_API AItem : public AActor
 {
@@ -52,14 +60,31 @@ protected:
 
 	void SetActiveStars();
 
-	void SetItemProperties(EItemState State);
+	virtual void SetItemProperties(EItemState State);
 
 	void FinishInterping();
 
 	void ItemInterp(float DeltaTime);
+
+	//Get the interp location based on item type
+	FVector GetInterpLocation();
+
+	void PlayPickUpSound();
+
+	virtual void InitializeCustonDepth();
+
+	void EnableGlowMaterial();
+
+	void DisableGlowMaterial();
+
+	virtual void OnConstruction(const FTransform& Transform) override;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	//Called in AShooterCharater::GetPickUPItem()
+	void PlayEquipSound();
 private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
@@ -88,6 +113,13 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
 	EItemState ItemState;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	EItemType ItemType;
+
+	//Index of the interp Location this item is interping to
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	int32 InterpLocIndex;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
 	class UCurveFloat* ItemZCurve;
@@ -127,6 +159,19 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
 	USoundCue* EquipedSound;
 
+	//Index of the material we would like to change at run time
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	int32 MateralIndex;
+
+	//Dynamic instace can be changed at run time
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	UMaterialInstanceDynamic* DynamicaMaterialInstance;
+
+	//Material instase used with the dynamic material instace
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	UMaterialInstance* MaterialInstace;
+
+	bool CanChangeCustonDepth;
 public:
 
 	FORCEINLINE UWidgetComponent* GetPickUpWidget() const { return PickupWidget; }
@@ -142,8 +187,15 @@ public:
 	FORCEINLINE USoundCue* GetEquipedSound() const { return EquipedSound; }
 
 	FORCEINLINE EItemState GetItemState() const { return ItemState; }
+	
+	FORCEINLINE int32 GetItemCount() const { return ItemCount; }
+
 	void SetItemState(EItemState State);
 
 	//Called From the Ashootercharacter class
 	void StartItemCurv(AShooterCharacter* Char);
+
+	virtual void EnableCustomDepth();
+
+	virtual void DisableCustomDepth();
 };

@@ -42,7 +42,7 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 
 		//is the character in the air
 		IsInAir = ShooterCharacter->GetCharacterMovement()->IsFalling();
-
+		IsAccelerating = true;
 		//is the character accelerating
 		if (ShooterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0)
 			IsAccelerating = true;

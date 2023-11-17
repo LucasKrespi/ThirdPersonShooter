@@ -8,6 +8,8 @@
 #include "Curves/CurveFloat.h"
 #include "Camera/CameraComponent.h"
 #include "ShooterCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 
 // Sets default values
 AItem::AItem():
@@ -22,7 +24,11 @@ AItem::AItem():
 	isInterping(false),
 	ItemInterpX(0.0f),
 	ItemInterpY(0.0f),
-	InterpInitialYawOffset(0.0f)
+	InterpInitialYawOffset(0.0f),
+	ItemType(EItemType::EIT_Max),
+	InterpLocIndex(0),
+	MateralIndex(0),
+	CanChangeCustonDepth(true)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -61,6 +67,8 @@ void AItem::BeginPlay()
 	}
 
 	SetItemProperties(ItemState);
+
+	InitializeCustonDepth();
 }
 
 void AItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -210,9 +218,15 @@ void AItem::FinishInterping()
 	isInterping = false;
 	if (Character)
 	{
+		Character->IncrementIterpLocItemCount(InterpLocIndex, -1);
 		Character->GetPickUpItem(this);
 	}
+
 	SetActorScale3D(FVector(1.0f));
+	DisableGlowMaterial();
+	
+	CanChangeCustonDepth = true;
+	DisableCustomDepth();
 }
 
 void AItem::ItemInterp(float DeltaTime)
@@ -225,7 +239,7 @@ void AItem::ItemInterp(float DeltaTime)
 		const float CurveValeu = ItemZCurve->GetFloatValue(ElapsedTime);
 
 		FVector ItemLocation = ItemInterpStartLocation;
-		const FVector CameraInterpLocation = Character->GetCameraInterpLocation();
+		const FVector CameraInterpLocation = GetInterpLocation();
 		const FVector ItemToCamera{ FVector(0.0f,0.0f, (CameraInterpLocation - ItemLocation).Z) };
 		
 		//Scale to multiply with curve value;
@@ -259,6 +273,102 @@ void AItem::ItemInterp(float DeltaTime)
 
 }
 
+FVector AItem::GetInterpLocation()
+{
+	if (Character == nullptr) return FVector(0.f);
+
+	switch (ItemType)
+	{
+	case EItemType::EIT_Ammo:
+		return Character->GetInterpLocationByIndex(InterpLocIndex).SceneComponent->GetComponentLocation();
+		break;
+	case EItemType::EIT_Weapon:
+		return Character->GetInterpLocationByIndex(0).SceneComponent->GetComponentLocation();
+		break;
+	case EItemType::EIT_Max:
+		return FVector(0.f);
+		break;
+	default:
+		return FVector(0.f);
+		break;
+	}
+	return FVector();
+}
+
+void AItem::PlayPickUpSound()
+{
+	if (Character)
+	{
+		if (Character->GetShouldPlayPickUpSound())
+		{
+			Character->StartPickUpSoundTimer();
+			if (PickUpSound)
+			{
+				UGameplayStatics::PlaySound2D(this, PickUpSound);
+			}
+		}
+	}
+}
+
+void AItem::EnableCustomDepth()
+{
+	if(CanChangeCustonDepth)
+		ItemMesh->SetRenderCustomDepth(true);
+}
+
+void AItem::DisableCustomDepth()
+{
+	if (CanChangeCustonDepth)
+		ItemMesh->SetRenderCustomDepth(false);
+}
+
+void AItem::InitializeCustonDepth()
+{
+	DisableCustomDepth();
+}
+
+void AItem::EnableGlowMaterial()
+{
+	if (DynamicaMaterialInstance)
+	{
+		DynamicaMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 0);
+	}
+}
+
+void AItem::DisableGlowMaterial()
+{
+	if (DynamicaMaterialInstance)
+	{
+		DynamicaMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 1);
+	}
+}
+
+void AItem::OnConstruction(const FTransform& Transform)
+{
+	if (MaterialInstace)
+	{
+		DynamicaMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstace, this);
+		ItemMesh->SetMaterial(MateralIndex, DynamicaMaterialInstance);
+	}
+
+	EnableGlowMaterial();
+}
+
+void AItem::PlayEquipSound()
+{
+	if (Character)
+	{
+		if (Character->GetShouldPlayEquipSound())
+		{
+			Character->StartEquipSoundTimer();
+			if (EquipedSound)
+			{
+				UGameplayStatics::PlaySound2D(this, EquipedSound);
+			}
+		}
+	}
+}
+
 // Called every frame
 void AItem::Tick(float DeltaTime)
 {
@@ -278,6 +388,11 @@ void AItem::StartItemCurv(AShooterCharacter* Char)
 {
 	Character = Char;
 
+	InterpLocIndex = Character->GetInterpLocationIndex();
+	Character->IncrementIterpLocItemCount(InterpLocIndex, 1);
+	
+	PlayPickUpSound();
+
 	ItemInterpStartLocation = GetActorLocation();
 	isInterping = true;
 	SetItemState(EItemState::EIS_EquipInterp);
@@ -288,5 +403,7 @@ void AItem::StartItemCurv(AShooterCharacter* Char)
 	const float ItemRotationYaw{ static_cast<float>(GetActorRotation().Yaw) };
 
 	InterpInitialYawOffset = ItemRotationYaw - CameraRotationYaw;
+
+	CanChangeCustonDepth = false;
 }
 
