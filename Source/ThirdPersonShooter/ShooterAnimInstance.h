@@ -103,4 +103,8 @@ private:
 	//True when crounching;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Crounching", meta = (AllowPrivateAccess = "true"))
 	bool IsCrounching;
+	
+	//True when equipping weapon;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Crounching", meta = (AllowPrivateAccess = "true"))
+	bool IsEquipping;
 };

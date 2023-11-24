@@ -13,6 +13,7 @@ enum class ECombatState : uint8
 	ECS_Unocupied UMETA(DisplayName = "Unocupied"),
 	ECS_FireTimerInProgress UMETA(DisplayName = "FireTimerInProgress"),
 	ECS_Reloading UMETA(DisplayName = "Reloading"),
+	ECS_Equipping UMETA(DisplayName = "Equipping"),
 
 	ECS_MAX UMETA(DisplayName = "DefaultMAX")
 };
@@ -30,6 +31,11 @@ struct FInterpLocation
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 ItemCount;
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipItemDelegate, int32, CurrentSlotIndex, int32, NewSlotIndex);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FHighLightIconDelegate, int32, SlotIndex, bool, StartAnimation);
+
 
 UCLASS()
 class THIRDPERSONSHOOTER_API AShooterCharacter : public ACharacter
@@ -98,7 +104,7 @@ protected:
 	void ReloadButtonPressed();
 	
 	class AWeapon* SpawnDefaultWeapon();
-	void EquipWeapon(AWeapon* Weapon);
+	void EquipWeapon(AWeapon* WeaponToEquip, bool IsSwapping = false);
 
 	void DropWeapon();
 
@@ -111,7 +117,9 @@ protected:
 	void ReloadWeapon();
 
 	UFUNCTION(BlueprintCallable)
-	void FinishReloading();
+	void FinishReloading();	
+	UFUNCTION(BlueprintCallable)
+	void FinishEquipping();
 
 	/** Checks to see if we got ammo for the corrent weapon */
 	bool CarryingAmmo();
@@ -131,6 +139,9 @@ protected:
 	void ResetPickUpSoundTimer();
 	void ResetEquipSoundTimer();
 
+	int32 GetEmptyInventorySlot();
+	void HighLightInventorySlot();
+	
 
 private:
 
@@ -155,6 +166,15 @@ private:
 	void FinishFireTimer();
 
 	void PickUpAmmo(class AAmmo* Ammo);
+
+	void FKeyPressed();
+	void OneKeyPressed();
+	void TwoKeyPressed();
+	void ThreeKeyPressed();
+	void FourKeyPressed();
+	void FiveKeyPressed();
+
+	void ExchangeInventoryItens(int32 CurrentItenIndex, int32 NewItenIndex);
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -325,6 +345,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* ReloadMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* EquippingMontage;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	FTransform ClipTransform;
 
@@ -375,6 +398,26 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	float EquipSoundResetTime;
 
+	//================Inventory================
+
+	//Array with AItens
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	TArray<AItem*> Inventory;
+
+	const int32 INVENTORY_CAPACITY{ 6 };
+
+	//Delegate for sending slot information to inventory bar when equipping
+	UPROPERTY(BlueprintAssignable, Category = Delegates, meta = (AllowPrivateAccess = "true"))
+	FEquipItemDelegate EquipItemDelegate;
+
+	//Delegate for sending slot information for playing the icon Animation
+	UPROPERTY(BlueprintAssignable, Category = Delegates, meta = (AllowPrivateAccess = "true"))
+	FHighLightIconDelegate HighLightIconDelegate;
+
+	//The index of the current highlighted slot
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	int32 HighLightedSlot;
+
 public:
 
 	//Return Camera Boom subObject
@@ -415,4 +458,6 @@ public:
 	int32 GetInterpLocationIndex();
 
 	void IncrementIterpLocItemCount(int32 Index, int32 Ammount);
+
+	void UnhighLightInventorySlot();
 };

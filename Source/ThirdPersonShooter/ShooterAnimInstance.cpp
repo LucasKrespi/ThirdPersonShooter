@@ -35,6 +35,7 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 	{
 		IsCrounching = ShooterCharacter->GetIsCrounching();
 		IsReloading = ShooterCharacter->GetCombateState() == ECombatState::ECS_Reloading;
+		IsEquipping = ShooterCharacter->GetCombateState() == ECombatState::ECS_Equipping;
 		//Get the lateral speed of the character from velocity
 		FVector Velocity{ ShooterCharacter->GetVelocity() };
 		Velocity.Z = 0;

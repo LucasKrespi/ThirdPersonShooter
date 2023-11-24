@@ -69,22 +69,27 @@ protected:
 	//Get the interp location based on item type
 	FVector GetInterpLocation();
 
-	void PlayPickUpSound();
+	void PlayPickUpSound(bool ForcePlaySound = false);
 
 	virtual void InitializeCustonDepth();
 
 	void EnableGlowMaterial();
 
-	void DisableGlowMaterial();
-
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+	void UpdatePulse();
+
+	//Callback for PulseTimer
+	void ResetPulseTimer();
+
+	void StartPulseTimer();
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	//Called in AShooterCharater::GetPickUPItem()
-	void PlayEquipSound();
+	void PlayEquipSound(bool ForcePlaySound = false);
 private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
@@ -172,6 +177,44 @@ private:
 	UMaterialInstance* MaterialInstace;
 
 	bool CanChangeCustonDepth;
+
+	//Curve to drive the material pulse
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	class UCurveVector* PulseCurve;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	class UCurveVector* InterpPulseCurve;
+
+	FTimerHandle PulseTimer;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	float PulseCurveTime;
+
+	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	float GlowAmmount;
+
+	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	float FresnelExponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	float FresnelReflectFraction;
+
+	//Background Texture for the inventory slot
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UTexture2D* IconBackground;
+	//Item texture for the inventory slot
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UTexture2D* IconItem;
+	//Ammo icon texture for the inventory slot
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UTexture2D* IconAmmo;
+
+	//Slot in the inventory array
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	int32 SlotIndex;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	bool IsInventoryFull;
 public:
 
 	FORCEINLINE UWidgetComponent* GetPickUpWidget() const { return PickupWidget; }
@@ -190,12 +233,23 @@ public:
 	
 	FORCEINLINE int32 GetItemCount() const { return ItemCount; }
 
+	FORCEINLINE int32 GetSlotIndex() const { return SlotIndex; }
+
+	FORCEINLINE void SetSlotIndex(int32 Index) { SlotIndex = Index; }
+
+	FORCEINLINE void SetCharacter(AShooterCharacter* Char) { Character = Char; }
+
+	FORCEINLINE void SetCharacterInventoryFull(bool isFull) { IsInventoryFull = isFull; }
+
 	void SetItemState(EItemState State);
 
 	//Called From the Ashootercharacter class
-	void StartItemCurv(AShooterCharacter* Char);
+	void StartItemCurv(AShooterCharacter* Char, bool ForcePlaySound = false);
+
 
 	virtual void EnableCustomDepth();
 
 	virtual void DisableCustomDepth();
+
+	void DisableGlowMaterial();
 };
