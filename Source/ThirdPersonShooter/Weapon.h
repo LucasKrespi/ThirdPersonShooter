@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Item.h"
 #include "AmmoType.h"
+#include "Engine/DataTable.h"
 #include "Weapon.generated.h"
 
 UENUM(BlueprintType)
@@ -14,6 +15,45 @@ enum class EWeaponType : uint8
 	EWT_AR UMETA(DislayName = "AR"),
 
 	EWT_MAX UMETA(DislayName = "DefaultMAX")
+};
+
+USTRUCT(BlueprintType)
+struct FWeaponDataTable : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EAmmoType AmmoType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 WeaponAmmo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MagazineCapacity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USoundCue* PickUpSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USoundCue* EquipSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USkeletalMesh* ItemMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* IventoryIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* AmmoIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UMaterialInstance* MaterialInstace;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaterialIndex;
 };
 
 UCLASS()
@@ -31,6 +71,7 @@ protected:
 
 	void StopFalling();
 
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 private:
 
@@ -61,6 +102,10 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
 	FName ClipBoneName;
 
+	//Data table to set weapon propriets
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
+	UDataTable* WeaponDataTable;
+
 	//TODO: Add to data table
 	//Amount of damage caused by one bullet
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
@@ -68,6 +113,8 @@ private:
 	//Amount of damage caused by one bullet in the head
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
 	float HeadShootDamage;
+
+	int32 PreviusMaterialIndex;
 public:
 
 	void ThrowWeapon();

@@ -374,17 +374,17 @@ void AItem::InitializeCustonDepth()
 
 void AItem::EnableGlowMaterial()
 {
-	if (DynamicaMaterialInstance)
+	if (DynamicMaterialInstance)
 	{
-		DynamicaMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 0);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 0);
 	}
 }
 
 void AItem::DisableGlowMaterial()
 {
-	if (DynamicaMaterialInstance)
+	if (DynamicMaterialInstance)
 	{
-		DynamicaMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 1);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 1);
 	}
 }
 
@@ -440,9 +440,9 @@ void AItem::OnConstruction(const FTransform& Transform)
 
 	if (MaterialInstace)
 	{
-		DynamicaMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstace, this);
-		DynamicaMaterialInstance->SetVectorParameterValue(TEXT("FresnelColor"), GlowColor);
-		ItemMesh->SetMaterial(MateralIndex, DynamicaMaterialInstance);
+		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstace, this);
+		DynamicMaterialInstance->SetVectorParameterValue(TEXT("FresnelColor"), GlowColor);
+		ItemMesh->SetMaterial(MateralIndex, DynamicMaterialInstance);
 		EnableGlowMaterial();
 	}
 }
@@ -480,11 +480,11 @@ void AItem::UpdatePulse()
 		break;
 	}
 
-	if (DynamicaMaterialInstance)
+	if (DynamicMaterialInstance)
 	{
-		DynamicaMaterialInstance->SetScalarParameterValue(TEXT("GlowAmmount"), CurveValeu.X * GlowAmmount);
-		DynamicaMaterialInstance->SetScalarParameterValue(TEXT("FresnelExponent"), CurveValeu.Y * FresnelExponent);
-		DynamicaMaterialInstance->SetScalarParameterValue(TEXT("FresnelReflectFraction"), CurveValeu.Z * FresnelReflectFraction);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowAmmount"), CurveValeu.X * GlowAmmount);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("FresnelExponent"), CurveValeu.Y * FresnelExponent);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("FresnelReflectFraction"), CurveValeu.Z * FresnelReflectFraction);
 	}
 }
 

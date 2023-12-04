@@ -190,7 +190,7 @@ private:
 
 	//Dynamic instace can be changed at run time
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	UMaterialInstanceDynamic* DynamicaMaterialInstance;
+	UMaterialInstanceDynamic* DynamicMaterialInstance;
 
 	//Material instase used with the dynamic material instace
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
@@ -263,8 +263,10 @@ public:
 	FORCEINLINE USkeletalMeshComponent* GetMesh() const { return ItemMesh; }
 
 	FORCEINLINE USoundCue* GetPickUpSound() const { return PickUpSound; }
+	FORCEINLINE void SetPickUpSound(USoundCue* Sound) { PickUpSound = Sound; }
 	
 	FORCEINLINE USoundCue* GetEquipedSound() const { return EquipedSound; }
+	FORCEINLINE void SetEquipedSound(USoundCue* Sound) { EquipedSound = Sound; }
 
 	FORCEINLINE EItemState GetItemState() const { return ItemState; }
 	
@@ -272,11 +274,31 @@ public:
 
 	FORCEINLINE int32 GetSlotIndex() const { return SlotIndex; }
 
+	FORCEINLINE UMaterialInstance* GetMaterialInstance() const { return MaterialInstace; }
+	
+	FORCEINLINE UMaterialInstanceDynamic* GetDynamicMaterialInstance() const { return DynamicMaterialInstance; }
+
+	FORCEINLINE FLinearColor GetGlowColor()const { return GlowColor; }
+
+	FORCEINLINE int32 GetMaterialIndex()const { return MateralIndex; }
+
 	FORCEINLINE void SetSlotIndex(int32 Index) { SlotIndex = Index; }
 
 	FORCEINLINE void SetCharacter(AShooterCharacter* Char) { Character = Char; }
 
 	FORCEINLINE void SetCharacterInventoryFull(bool isFull) { IsInventoryFull = isFull; }
+
+	FORCEINLINE void SetItemName(FString Name) { ItemName = Name; }
+
+	FORCEINLINE void SetIconItem(UTexture2D* Icon) { IconItem = Icon; }
+
+	FORCEINLINE void SetIconAmmo(UTexture2D* Icon) { IconAmmo = Icon; }
+
+	FORCEINLINE void SetMaterialInstace(UMaterialInstance* Inst) { MaterialInstace = Inst; }
+
+	FORCEINLINE void SetDynamicMaterialInstace(UMaterialInstanceDynamic* Inst) { DynamicMaterialInstance = Inst; }
+
+	FORCEINLINE void SetMaterialIndex(int32 Index) { MateralIndex = Index; }
 
 	void SetItemState(EItemState State);
 

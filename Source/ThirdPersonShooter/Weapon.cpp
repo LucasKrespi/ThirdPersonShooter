@@ -79,3 +79,57 @@ void AWeapon::StopFalling()
 	SetItemState(EItemState::EIS_PickUp);
 	StartPulseTimer();
 }
+
+void AWeapon::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	const FString WaponTablePath{ TEXT("/Script/Engine.DataTable'/Game/DataTables/WeaponData.WeaponData'") };
+
+	UDataTable* WeaponTableObject = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, *WaponTablePath));
+
+	if (WeaponTableObject)
+	{
+		FWeaponDataTable* WeaponDataRow = nullptr;
+
+		switch (WeaponType)
+		{
+		case EWeaponType::EWT_SMG:
+			WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("SubmachineGun"), TEXT(""));
+			break;
+		case EWeaponType::EWT_AR:
+			WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("AssaultRifle"), TEXT(""));
+			break;
+		case EWeaponType::EWT_MAX:
+			break;
+		default:
+			break;
+		}
+
+		if (WeaponDataRow)
+		{
+			AmmoType = WeaponDataRow->AmmoType;
+			Ammo = WeaponDataRow->WeaponAmmo;
+			MagazineCapacity = WeaponDataRow->MagazineCapacity;
+			SetPickUpSound(WeaponDataRow->EquipSound);
+			SetEquipedSound(WeaponDataRow->EquipSound);
+			GetMesh()->SetSkeletalMesh(WeaponDataRow->ItemMesh);
+			SetItemName(WeaponDataRow->ItemName);
+			SetIconItem(WeaponDataRow->IventoryIcon);
+			SetIconAmmo(WeaponDataRow->AmmoIcon);
+			SetMaterialInstace(WeaponDataRow->MaterialInstace);
+			PreviusMaterialIndex = GetMaterialIndex();
+			GetMesh()->SetMaterial(PreviusMaterialIndex, nullptr);
+			SetMaterialIndex(WeaponDataRow->MaterialIndex);
+		}
+
+		if (GetMaterialInstance())
+		{
+			SetDynamicMaterialInstace(UMaterialInstanceDynamic::Create(GetMaterialInstance(), this));
+			GetDynamicMaterialInstance()->SetVectorParameterValue(TEXT("FresnelColor"), GetGlowColor());
+			GetMesh()->SetMaterial(GetMaterialIndex(), GetDynamicMaterialInstance());
+			EnableGlowMaterial();
+		}
+	}
+
+}
