@@ -6,16 +6,9 @@
 #include "Item.h"
 #include "AmmoType.h"
 #include "Engine/DataTable.h"
+#include "WeaponType.h"
 #include "Weapon.generated.h"
 
-UENUM(BlueprintType)
-enum class EWeaponType : uint8
-{
-	EWT_SMG UMETA(DislayName = "SMG"),
-	EWT_AR UMETA(DislayName = "AR"),
-
-	EWT_MAX UMETA(DislayName = "DefaultMAX")
-};
 
 USTRUCT(BlueprintType)
 struct FWeaponDataTable : public FTableRowBase
@@ -101,6 +94,10 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
 	FName ClipBoneName;
+	
+	//TODO: Add the initializing name to Weapon Data Table;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Porperties", meta = (AllowPrivateAccess = "true"))
+	FName AttachBoneName;
 
 	//Data table to set weapon propriets
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
@@ -130,6 +127,8 @@ public:
 	FORCEINLINE int32 GetMagazineCapacity() const { return MagazineCapacity; }
 
 	FORCEINLINE FName GetClipBoneName() const { return ClipBoneName; }
+
+	FORCEINLINE FName GetAttachBoneName() const { return AttachBoneName; }
 	
 	FORCEINLINE float GetDamage() const { return Damage; }
 

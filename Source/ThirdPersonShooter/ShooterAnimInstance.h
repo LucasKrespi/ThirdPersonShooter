@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "WeaponType.h"
 #include "ShooterAnimInstance.generated.h"
 
 UENUM(BlueprintType)
@@ -107,4 +108,12 @@ private:
 	//True when equipping weapon;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Crounching", meta = (AllowPrivateAccess = "true"))
 	bool IsEquipping;
+
+	//Weapon type of the current equipped weapon
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Crounching", meta = (AllowPrivateAccess = "true"))
+	EWeaponType EquippedWeaponType;
+
+	//True when not reloading/equipping
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Crounching", meta = (AllowPrivateAccess = "true"))
+	bool ShouldUseFABRIK;
 };

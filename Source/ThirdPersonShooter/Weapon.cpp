@@ -11,7 +11,8 @@ AWeapon::AWeapon() :
 	WeaponType(EWeaponType::EWT_SMG),
 	AmmoType(EAmmoType::EAT_9mm),
 	ReloadMontageSelection(FName("Reload_SMG")),
-	ClipBoneName(FName("smg_clip"))
+	ClipBoneName(FName("smg_clip")),
+	AttachBoneName(FName("Right_Hand_Socket"))
 {
 	PrimaryActorTick.bCanEverTick = true;
 }

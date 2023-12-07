@@ -431,6 +431,8 @@ public:
 	FORCEINLINE int8 GetOverlappedItemCount() const { return OverlappedItemCount; }
 
 	FORCEINLINE ECombatState GetCombateState() const { return CombatState; }
+	
+	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
 
 	FORCEINLINE bool GetIsCrounching() const { return IsCrouching; }
 
@@ -460,4 +462,6 @@ public:
 	void IncrementIterpLocItemCount(int32 Index, int32 Ammount);
 
 	void UnhighLightInventorySlot();
+
+
 };
