@@ -174,6 +174,9 @@ private:
 	void FourKeyPressed();
 	void FiveKeyPressed();
 
+	void Aim();
+	void StopAiming();
+
 	void ExchangeInventoryItens(int32 CurrentItenIndex, int32 NewItenIndex);
 public:	
 	// Called every frame
@@ -226,6 +229,8 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	bool IsAiming;
 
+	bool IsAimingButtonPressed;
+
 	//Camera default field of view valeu
 
 	float CameraDefaultFOV;
@@ -245,17 +250,9 @@ private:
 
 	//=========Particles==============
 	
-	//Randomized gunshot sound cue
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	class USoundCue* FireSound;
-
-	//Flash Spawned when weapon is fired
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	class UParticleSystem* MuzzleFlash;
-	
 	//Particle Spawned on bullet collision
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	UParticleSystem* ImpactParticles;
+	class UParticleSystem* ImpactParticles;
 
 	//Smoke trail for bullets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -293,8 +290,6 @@ private:
 
 	//True when fire is allowd 
 	bool ShouldFire;
-
-	float AutomaticGunFireRate;
 
 	FTimerHandle AutoFireTimer;
 

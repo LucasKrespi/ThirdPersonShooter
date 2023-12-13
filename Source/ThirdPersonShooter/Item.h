@@ -278,9 +278,9 @@ public:
 	
 	FORCEINLINE UMaterialInstanceDynamic* GetDynamicMaterialInstance() const { return DynamicMaterialInstance; }
 
-	FORCEINLINE FLinearColor GetGlowColor()const { return GlowColor; }
+	FORCEINLINE FLinearColor GetGlowColor() const { return GlowColor; }
 
-	FORCEINLINE int32 GetMaterialIndex()const { return MateralIndex; }
+	FORCEINLINE int32 GetMaterialIndex() const { return MateralIndex; }
 
 	FORCEINLINE void SetSlotIndex(int32 Index) { SlotIndex = Index; }
 

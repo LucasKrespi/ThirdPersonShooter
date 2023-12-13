@@ -12,7 +12,12 @@ AWeapon::AWeapon() :
 	AmmoType(EAmmoType::EAT_9mm),
 	ReloadMontageSelection(FName("Reload_SMG")),
 	ClipBoneName(FName("smg_clip")),
-	AttachBoneName(FName("Right_Hand_Socket"))
+	AttachBoneName(FName("Right_Hand_Socket")),
+	SlideDisplacement(0.0f),
+	SliderDisplacementTime(0.3f),
+	MaxSlideDisplacement(4.0f),
+	MaxRecoilRotation(20.0f),
+	IsAutomaticFire(true)
 {
 	PrimaryActorTick.bCanEverTick = true;
 }
@@ -26,6 +31,8 @@ void AWeapon::Tick(float DeltaTime)
 		const FRotator MeshRotation{ 0.0f, GetMesh()->GetComponentRotation().Yaw, 0.0f };
 		GetMesh()->SetWorldRotation(MeshRotation, false, nullptr, ETeleportType::TeleportPhysics);
 	}
+
+	UpdateSlideDisplacement();
 }
 
 void AWeapon::ThrowWeapon()
@@ -74,6 +81,12 @@ bool AWeapon::ClipIsFull()
 	return Ammo >= MagazineCapacity;
 }
 
+void AWeapon::StartSlideTimer()
+{
+	IsMovingSlider = true;
+	GetWorldTimerManager().SetTimer(SlideTimer, this, &AWeapon::FinishMovingSlide, SliderDisplacementTime);
+}
+
 void AWeapon::StopFalling()
 {
 	isFalling = false;
@@ -85,7 +98,7 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
-	const FString WaponTablePath{ TEXT("/Script/Engine.DataTable'/Game/DataTables/WeaponData.WeaponData'") };
+	const FString WaponTablePath{ TEXT("/Script/Engine.DataTable'/Game/DataTables/Weapon_Data.Weapon_Data'") };
 
 	UDataTable* WeaponTableObject = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, *WaponTablePath));
 
@@ -96,10 +109,13 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 		switch (WeaponType)
 		{
 		case EWeaponType::EWT_SMG:
-			WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("SubmachineGun"), TEXT(""));
+			WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("SubMachineGun"), TEXT(""));
 			break;
 		case EWeaponType::EWT_AR:
 			WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("AssaultRifle"), TEXT(""));
+			break;
+		case EWeaponType::EWT_Pistol:
+			WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("Pistol"), TEXT(""));
 			break;
 		case EWeaponType::EWT_MAX:
 			break;
@@ -122,6 +138,25 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 			PreviusMaterialIndex = GetMaterialIndex();
 			GetMesh()->SetMaterial(PreviusMaterialIndex, nullptr);
 			SetMaterialIndex(WeaponDataRow->MaterialIndex);
+			SetAttachBoneName(WeaponDataRow->AttachBoneName);
+			SetClipBoneName(WeaponDataRow->ClipBoneName);
+			SetReloadMontageSelection(WeaponDataRow->ReloadMontageSelection);
+			GetMesh()->SetAnimInstanceClass(WeaponDataRow->AnimBp);
+
+			CrossHairsMiddle = WeaponDataRow->CrossHairsMiddle;
+			CrossHairsTop = WeaponDataRow->CrossHairsTop;
+			CrossHairsBotton = WeaponDataRow->CrossHairsBotton;
+			CrossHairsRight = WeaponDataRow->CrossHairsRight;
+			CrossHairsLeft = WeaponDataRow->CrossHairsLeft;
+
+			AutoFireRate = WeaponDataRow->AutoFireRate;
+			MuzzleFlash = WeaponDataRow->MuzzleFlash;
+			FireSound = WeaponDataRow->FireSound;
+			BoneToHide = WeaponDataRow->BoneToHide;
+			IsAutomaticFire = WeaponDataRow->IsAutomaticFire;
+
+			Damage = WeaponDataRow->Damage;
+			HeadShootDamage = WeaponDataRow->HeadShootDamage;
 		}
 
 		if (GetMaterialInstance())
@@ -133,4 +168,35 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 		}
 	}
 
+}
+
+void AWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (BoneToHide != FName(""))
+	{
+		GetMesh()->HideBoneByName(BoneToHide, EPhysBodyOp::PBO_None);
+	}
+}
+
+void AWeapon::FinishMovingSlide()
+{
+	IsMovingSlider = false;
+}
+
+void AWeapon::UpdateSlideDisplacement()
+{
+	if (IsMovingSlider && SlideDisplacementCurve)
+	{
+		const float ElapsedTime{ GetWorldTimerManager().GetTimerElapsed(SlideTimer) };
+
+		const float CurveValeu{ SlideDisplacementCurve->GetFloatValue(ElapsedTime) };
+
+		SlideDisplacement = CurveValeu * MaxSlideDisplacement;
+
+		RecoilRotation = CurveValeu * MaxRecoilRotation;
+
+		GEngine->AddOnScreenDebugMessage(1, 5, FColor::Red, FString::Printf(TEXT("%f"), SlideDisplacement));
+	}
 }

@@ -37,6 +37,7 @@ AShooterCharacter::AShooterCharacter() :
 	MouseAimingLookUpRate(0.3f),
 	//True when aiming the weapon
 	IsAiming(false),
+	IsAimingButtonPressed(false),
 	//Camera FOV values
 	CameraDefaultFOV(0.0f),//set in begin play;
 	CameraZoomFOV(45.0f),
@@ -52,7 +53,6 @@ AShooterCharacter::AShooterCharacter() :
 	ShootTimeDuration(0.05f),
 	isFiringBullet(false),
 	//AutomaticFireGunRate
-	AutomaticGunFireRate(0.1f),
 	ShouldFire(true),
 	IsFireButtonPressed(false),
 	ShouldTraceForItens(false),
@@ -301,18 +301,21 @@ void AShooterCharacter::FinishCrossHairBulletFire()
 
 void AShooterCharacter::StartFireTimer()
 {
+	if (EquippedWeapon == nullptr) return;
+
 	CombatState = ECombatState::ECS_FireTimerInProgress;
 	
-	GetWorldTimerManager().SetTimer(AutoFireTimer, this, &AShooterCharacter::FinishFireTimer, AutomaticGunFireRate);
+	GetWorldTimerManager().SetTimer(AutoFireTimer, this, &AShooterCharacter::FinishFireTimer, EquippedWeapon->GetAutoFireRate());
 }
 
 void AShooterCharacter::FinishFireTimer()
 {
 	CombatState = ECombatState::ECS_Unocupied;
 
+	if (EquippedWeapon == nullptr) return;
 	if (WeaponHasAmmo())
 	{
-		if (IsFireButtonPressed)
+		if (IsFireButtonPressed && EquippedWeapon->GetAutomaticFire())
 		{
 			FireWeapon();
 		}
@@ -381,6 +384,16 @@ void AShooterCharacter::FiveKeyPressed()
 	ExchangeInventoryItens(EquippedWeapon->GetSlotIndex(), 5);
 }
 
+void AShooterCharacter::Aim()
+{
+	IsAiming = true;
+}
+
+void AShooterCharacter::StopAiming()
+{
+	IsAiming = false;
+}
+
 void AShooterCharacter::ExchangeInventoryItens(int32 CurrentItenIndex, int32 NewItenIndex)
 {
 	if ((CurrentItenIndex == NewItenIndex) 
@@ -388,6 +401,10 @@ void AShooterCharacter::ExchangeInventoryItens(int32 CurrentItenIndex, int32 New
 
 	if ((CombatState == ECombatState::ECS_Unocupied) || (CombatState == ECombatState::ECS_Equipping))
 	{
+		//TODO: make into a function
+		if (IsAiming)
+			StopAiming();
+
 		auto OldEquippedWaepon = EquippedWeapon;
 		auto NewWeapon = Cast<AWeapon>(Inventory[NewItenIndex]);
 
@@ -472,6 +489,11 @@ void AShooterCharacter::FireWeapon()
 
 		StartFireTimer();
 		StartCrossHairBulletFire();
+
+		if (EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol)
+		{
+			EquippedWeapon->StartSlideTimer();
+		}
 	}
 
 }
@@ -494,9 +516,9 @@ void AShooterCharacter::SendBullet()
 	{
 		const FTransform SocketTransform = BarrelSocket->GetSocketTransform(EquippedWeapon->GetMesh());
 
-		if (MuzzleFlash)
+		if (EquippedWeapon->GetMuzzleFlash())
 		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFlash, SocketTransform);
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), SocketTransform);
 		}
 
 		FHitResult BeanHitResult;
@@ -557,9 +579,9 @@ void AShooterCharacter::SendBullet()
 
 void AShooterCharacter::PlayFireSound()
 {
-	if (FireSound)
+	if (EquippedWeapon->GetFireSound())
 	{
-		UGameplayStatics::PlaySound2D(this, FireSound);
+		UGameplayStatics::PlaySound2D(this, EquippedWeapon->GetFireSound());
 	}
 }
 
@@ -628,12 +650,16 @@ bool AShooterCharacter::TraceUnderCrossHair(FHitResult& OutHitResult, FVector& O
 
 void AShooterCharacter::AimingButtonPressed()
 {
-	IsAiming = true;
+	IsAimingButtonPressed = true;
+	
+	if(CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping)
+		Aim();
 }
 
 void AShooterCharacter::AimingButtonRelease()
 {
-	IsAiming = false;
+	IsAimingButtonPressed = false;
+	StopAiming();
 }
 
 void AShooterCharacter::FireButtonPressed()
@@ -797,6 +823,8 @@ void AShooterCharacter::FinishReloading()
 void AShooterCharacter::FinishEquipping()
 {
 	CombatState = ECombatState::ECS_Unocupied;
+	if (IsAimingButtonPressed)
+		Aim();
 }
 
 bool AShooterCharacter::CarryingAmmo()

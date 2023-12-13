@@ -146,8 +146,8 @@ void UShooterAnimInstance::TurnInPlace()
 				const float YawExcess{ AbsRootYawOffset - 90.0f };
 				RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
 			}
-		}
 
+		}
 	}
 
 }
